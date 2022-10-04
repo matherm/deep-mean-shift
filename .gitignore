@@ -1,0 +1,16 @@
+**/.ipynb_checkpoints/**
+**/__pycache__/**
+**/.pytest_cache/**
+**/.eggs/**
+**/build/**
+**/dist/**
+**/MNIST/**
+**meanshift.egg-info/**
+notebooks/anomalymaps/
+**/data/**
+**/__cache__/**
+**/test.txt
+**/cifar-10-python.tar.gz
+**/cifar-10-batches-py/**
+*.mat
+*.log

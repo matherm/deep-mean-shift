@@ -1,0 +1,12 @@
+numpy
+scipy
+imageio
+scikit-learn
+scikit-image
+torch
+tqdm
+albumentations
+torchvision
+matplotlib
+tensorboardX
+git+https://github.com/matherm/Lie-Adam

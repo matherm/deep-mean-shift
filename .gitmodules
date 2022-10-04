@@ -1,0 +1,9 @@
+[submodule "notebooks/github/CutPaste"]
+	path = notebooks/github/CutPaste
+	url = https://github.com/LilitYolyan/CutPaste
+[submodule "notebooks/github/dsvd"]
+	path = notebooks/github/dsvd
+	url = https://github.com/lukasruff/Deep-SVDD-PyTorch.git
+[submodule "notebooks/github/htdg"]
+	path = notebooks/github/htdg
+	url = https://github.com/shellysheynin/A-Hierarchical-Transformation-Discriminating-Generative-Model-for-Few-Shot-Anomaly-Detection.git
