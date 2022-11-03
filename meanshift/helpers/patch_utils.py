@@ -7,12 +7,29 @@ from torch.nn import functional as F
 from skimage.transform import resize
 from sklearn.cluster import KMeans
 from sklearn.metrics import roc_auc_score
+from .im2col import *
 
 def asreshape(*args, shape=(3, 32, 32)):
     return tuple([arg.reshape(len(arg), *shape) for arg in args])       
 
 def asfloat(*args):
     return tuple([arg.astype(np.float32) for arg in args])       
+
+def patches_to_fmap(patches, T):
+    n, n_components = patches.shape
+    return tiles_to_fmap(patches.reshape(-1, T, n_components))
+
+def fmap_to_features(X, P=2):
+    features = i2col(X, X.shape, BSZ=(P, P)) # N x F
+    T, F = features.shape[0] // len(X), features.shape[1]
+    features = features.reshape(-1, T, F)   
+    features = tiles_to_fmap(features)
+    return features
+    
+def fmap_spatial_average(X, P=2, rho=2, avg_stride=1, avg_padd=0):
+    F = fmap_to_features(X, P)
+    F_map = avg_pool( F, size=rho, stride=avg_stride, padding=avg_padd)
+    return F_map
 
 def tiles_to_fmap(S_fmap):
     """
@@ -43,7 +60,7 @@ def fmap_to_tiles(F_fmap):
      
     # reshape to feature map
     if torch.is_tensor(F_fmap):
-        return F_fmap.reshape(n, n_components, h*w).transpose(1, 2).contiguous().reshape(n, n_tiles, n_components) 
+        return F_fmap.reshape(n, n_components, h*w).transpose(1, 2).contiguous().view(n, n_tiles, n_components) 
     else:
         return F_fmap.reshape(n, n_components, h*w).transpose(0, 2, 1).copy().reshape(n, n_tiles, n_components) 
 
@@ -54,7 +71,19 @@ def flatten(X_patches):
 def total_pool(X_patches):
     return X_patches.mean((2,3))
 
-def i2col(X, shape, BSZ=(4, 4), padding=0, stride=1):
+def col2i(F, shape=-1, BSZ=(4, 4), padding=0, stride=1):
+    """
+    F (array), shape (B, F, N)
+    """
+    if not torch.is_tensor(F):
+        return col2i(torch.from_numpy(F), shape, BSZ, padding, stride).numpy()
+    
+    out = torch.nn.functional.fold(F, shape, kernel_size=BSZ[0],  dilation=1, padding=padding, stride=stride)
+    
+    return out
+
+
+def i2col(X, shape=-1, BSZ=(4, 4), padding=0, stride=1):
     """
     >>> i2col(torch.cat([torch.zeros((1, 160, 8, 8)), torch.ones((1, 160, 8, 8))]), (160, 8, 8)).shape
     (50, 2560)
@@ -72,9 +101,10 @@ def i2col(X, shape, BSZ=(4, 4), padding=0, stride=1):
     
     return imcol #.T.reshape(-1, shape[0], BSZ[0],  BSZ[0])
 
-def i2c(X, p, stride=1):
+def i2c(X, p, stride=1, reorder = True):
     X_p = im2col(X, BSZ=(p, p), padding=0, stride=stride).T
-    X_p = X_p[im2colOrder(len(X), len(X_p))] 
+    if reorder:
+        X_p = X_p[im2colOrder(len(X), len(X_p))] 
     return X_p
 
 def cluster_centers_tiles(X, tile_size = 7, stride = 7):
@@ -128,7 +158,7 @@ def concat_features2(X, eff, blocks=[4, 6], bs=50, fmap_pool=False, debug=False,
     
     device = next(eff.parameters()).device
     
-    m = torch.nn.AvgPool2d(3, 1, 1) if fmap_pool else lambda x : x
+    m = torch.nn.AvgPool2d(fmap_pool, 1, 1) if fmap_pool else lambda x : x
     
     data = []
     hooks = []
